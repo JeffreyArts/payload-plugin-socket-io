@@ -6,13 +6,20 @@ import Messages from './collections/Messages';
 import { mongooseAdapter } from '@payloadcms/db-mongodb'
 import { webpackBundler } from '@payloadcms/bundler-webpack'
 import { slateEditor } from '@payloadcms/richtext-slate'
-import { samplePlugin } from '../../src/index'
+import  socketIOHandler from "./components/socket-io-handler"
+import { PluginSocketIO } from '../../src/index'
 import cors from "./utils/loadCorsFromENV"
+
 
 export default buildConfig({
   admin: {
     user: Users.slug,
     bundler: webpackBundler(),
+
+    components: {
+      // Add additional admin components here
+      afterNavLinks: [ socketIOHandler ]
+    },
     webpack: config => {
       const newConfig = {
         ...config,
@@ -21,6 +28,7 @@ export default buildConfig({
           alias: {
             ...(config?.resolve?.alias || {}),
             react: path.join(__dirname, '../node_modules/react'),
+            'socket.io-client': path.join(__dirname, '../node_modules/socket.io-client'),
             'react-dom': path.join(__dirname, '../node_modules/react-dom'),
             payload: path.join(__dirname, '../node_modules/payload'),
           },
@@ -40,7 +48,7 @@ export default buildConfig({
   graphQL: {
     schemaOutputFile: path.resolve(__dirname, 'generated-schema.graphql'),
   },
-  plugins: [samplePlugin({ enabled: true })],
+  plugins: [PluginSocketIO({ enabled: true })],
   db: mongooseAdapter({
     url: process.env.DATABASE_URI,
   }),

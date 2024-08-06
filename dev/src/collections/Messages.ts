@@ -23,9 +23,8 @@ const Messages: CollectionConfig = {
             create: (args, req, result) => {
                 // Return false to disallow emit
                 // Return {public: boolean | Object<result>}
-                // Return {authenticated: boolean | Object<result>}
-                // Return {<room>: boolean | Object<result>}
                 // Return {self: boolean | Object<result>}
+                // Return {<room>: boolean | Object<result>}
                 // Return undefined will emit to public by default
                 const data = {
                     id: result.id,
@@ -44,26 +43,11 @@ const Messages: CollectionConfig = {
             },
             updateByID: (args, req, result) => {
                 console.log("user",result)
-                // console.log(req.payload.req.user)
-                // Return false to disallow emit
-                // Otherwise return undefined, or an adjusted result object
                 return {
                     public: result
                 }
             }
         } 
-    },
-    hooks: {
-        afterOperation: [
-            ({
-            args, // arguments passed into the operation
-            operation, // name of the operation
-            req, // full express request
-            result, // the result of the operation, before modifications
-          }) => {
-            console.log(operation, req.sessionID, req.session)
-          }
-        ]
     },
     fields: [
         {
@@ -71,6 +55,7 @@ const Messages: CollectionConfig = {
             type: "relationship",
             relationTo: "site-users",
             label: "User",
+            defaultValue: (req) =>  req.user,
             required: true
         },
         {

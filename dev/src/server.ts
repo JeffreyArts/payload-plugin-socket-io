@@ -20,20 +20,21 @@ const server = Server(Number(process.env.PORT) || 3000, {
 })
 
 export const start = async (args?: Partial<InitOptions>) => {
+  payload.io = server.io, // Adding socketIO server
+  
   // Initialize Payload
   await payload.init({
     secret: process.env.PAYLOAD_SECRET,
     express: server.express, // Adding Express server
-    io: server.io, // Adding socketIO server
-    cors: cors,
     onInit: async () => {
       payload.logger.info(`Payload Admin URL: ${payload.getAdminURL()}`)
     },
     ...(args || {}),
   })
-
-
-  const app = server.express
+  
+  server.express.get('/', (_, res) => {
+    res.redirect('/admin')
+  })
 
   server.express.get('/api/test', (req, res) => {
     console.log("Test sessionId:", req.sessionID, req.session)

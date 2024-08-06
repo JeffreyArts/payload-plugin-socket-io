@@ -44,6 +44,7 @@ export default (port = 3000, options = {
 
     const opts = {
         socketIO: {
+            ...defaultOptions.socketIO,
             ...options.socketIO,
             cors: {
                 ...defaultOptions.socketIO.cors,
@@ -51,6 +52,7 @@ export default (port = 3000, options = {
             },
         },
         expressSession: {
+            ...defaultOptions.expressSession,
             ...options.expressSession,
             cookie: {
                 ...defaultOptions.expressSession.cookie,
@@ -74,7 +76,6 @@ export default (port = 3000, options = {
     io.engine.use(sessionMiddleware);
     
     httpServer.listen(port);
-      
 
     io.on("connect", (socket) => {
         const request = socket.request as SessionIncomingMessage
@@ -89,6 +90,7 @@ export default (port = 3000, options = {
     })
     return {
         io,
-        express: app
+        express: app,
+        httpServer: httpServer
     }
 }
