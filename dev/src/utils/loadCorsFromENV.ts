@@ -1,6 +1,6 @@
 // import "dotenv/config"
 
-let cors = [] as Array<string> | ["*"]
+let cors = [] as Array<string>
 if (process.env.CORS) {
     if (process.env.CORS === "*") {
         cors.push(process.env.CORS)
