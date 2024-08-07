@@ -9,6 +9,7 @@ import { slateEditor } from '@payloadcms/richtext-slate'
 import  socketIOHandler from "./components/socket-io-handler"
 import { PluginSocketIO } from '../../src/index'
 import cors from "./utils/loadCorsFromENV"
+import customIOroutes from "./socket/custom-routes"
 
 
 export default buildConfig({
@@ -28,7 +29,6 @@ export default buildConfig({
           alias: {
             ...(config?.resolve?.alias || {}),
             react: path.join(__dirname, '../node_modules/react'),
-            'socket.io-client': path.join(__dirname, '../node_modules/socket.io-client'),
             'react-dom': path.join(__dirname, '../node_modules/react-dom'),
             payload: path.join(__dirname, '../node_modules/payload'),
           },
@@ -48,7 +48,11 @@ export default buildConfig({
   graphQL: {
     schemaOutputFile: path.resolve(__dirname, 'generated-schema.graphql'),
   },
-  plugins: [PluginSocketIO({ enabled: true })],
+  plugins: [PluginSocketIO({
+    enabled: true,
+    dev: true,
+    onConnect: [customIOroutes],
+  })],
   db: mongooseAdapter({
     url: process.env.DATABASE_URI,
   }),

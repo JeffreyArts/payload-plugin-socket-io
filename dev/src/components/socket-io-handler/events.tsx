@@ -6,7 +6,7 @@ export function Events({ events }) {
     {
       events.map((event, index) =>
         <li className="socket-list-item" key={ index } title={JSON.stringify(event.data, null, 2)}>
-          <span>⑆ { event.type }</span>
+          <span>✨ { event.type }</span>
           <em>{event.time}</em>
         </li>
       )

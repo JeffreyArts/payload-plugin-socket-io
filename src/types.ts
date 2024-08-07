@@ -1,26 +1,29 @@
 import { IncomingMessage } from 'http';
 import session from 'express-session';
-import 'socket.io';
+import { Socket } from 'socket.io';
 
 
-interface CustomIncomingMessageSession extends session.Session {
+export interface CustomSocketRequest extends IncomingMessage {
+  session: CustomSession;
+  sessionID?: string
+}
+
+export interface CustomSession extends session.Session {
   socketID?: string;
 }
-
-export interface SessionIncomingMessage extends IncomingMessage {
-  session?: CustomIncomingMessageSession;
+export interface CustomSocket extends Socket {
+  request: CustomSocketRequest
+  sessionID?: string
 }
 
 
-
-export interface PluginTypes {
+export interface OptionsPluginSocketIO {
   /**
    * Enable or disable plugin
    * @default false
    */
-  enabled?: boolean
+  enabled?: boolean,
+  dev?: boolean,
+  onConnect?: Array<(socket: Socket) => void>,
 }
 
-export interface NewCollectionTypes {
-  title: string
-}

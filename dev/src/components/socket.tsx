@@ -4,6 +4,6 @@ import { io } from 'socket.io-client';
 const URL = `http://localhost:3000`
 
 export const socket = io(URL,{
-    secure: false, // Mandatory for Chromium browsers?
-    withCredentials: true
+    // secure: false, // Mandatory for Chromium browsers?
+    // withCredentials: true
 });

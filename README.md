@@ -1,226 +1,157 @@
-# Payload Plugin Template
+#Payload plugin - Socket IO
+#### Plugin for integrating Socket IO with payload
 
-A template repo to create a [Payload CMS](https://payloadcms.com) plugin.
+This plugin will allow you to emit messages via SocketIO on Payload’s crud operations over the root/default namespace. It works by adding a custom.socketAccess object to your collection with one of the following properties: ‘create', ‘find', ‘findByID’, ‘update', ‘updateByID’, ‘delete’, ‘deleteByID’, ‘login’, ‘refresh’, and or ‘forgotPassword’.It will utilise express-session to extend sockets with a session object, that can be used via back-end processes. The socketIO server and express session need to be set-up by the developer. This document guides you through this process, and highlights common pitfalls.
 
-Payload is built with a robust infrastructure intended to support Plugins with ease. This provides a simple, modular, and reusable way for developers to extend the core capabilities of Payload.
+This plugin also allows to send/receive custom messages over sockets, outside of payloads integration, and can be tested by going to the /dev/src folder and run `yarn dev`. Don’t forget to install the packages in the root as well as the /dev directories
 
-To build your own Payload plugin, all you need is:
 
-* An understanding of the basic Payload concepts
-* And some JavaScript/Typescript experience
+## Installation
 
-## Background
+### Step 1 Add this project in you plugins directory
 
-Here is a short recap on how to integrate plugins with Payload, to learn more visit the [plugin overview page](https://payloadcms.com/docs/plugins/overview).
+Clone this project in you plugins directory (there is no rpm install available yet). If you don’t have a plugins folder, I’ll suggest to create one on the root level of your application. 
 
-### How to install a plugin
+### Step 2 Configure server
 
-To install any plugin, simply add it to your payload.config() in the Plugin array.
+This is the most complex step, but in short, you can copy+paste the code below to initiate an express & socketIO server that utilises the express-session middleware that is required for this plugin to work. The longer version is going through it line by line and weave it in your existing server script, since this code only sets up the server, it does not initialise payload.
 
-```ts
-import samplePlugin from 'sample-plugin';
 
-export const config = buildConfig({
-  plugins: [
-    // You can pass options to the plugin
-    samplePlugin({
-		  enabled: true,
-    }),
-  ]
+```
+import express from 'express';
+import { createServer } from "node:http";
+import { Server } from "socket.io"
+import session, { SessionOptions } from "express-session";
+import MongoStore from "connect-mongo"
+
+const app = express();
+app.set('trust proxy', 1)
+
+const httpServer = createServer(app);
+// Adding socketIO server to payload object, so it is accessible from any point in the application
+payload.io = new Server(httpServer, {
+  cors: {
+    origin: [“http://localhost:3000”], // Array of authorized hosts
+    methods: ["GET", "POST"], // Required setting
+    credentials: true // This property is required when server host differs from client host eg. http://localhost:3000 VS http://localhost:3001
+  }
 });
-```
 
-### Initialization
-
-The initialization process goes in the following order:
-
-1. Incoming config is validated
-2. **Plugins execute**
-3. Default options are integrated
-4. Sanitization cleans and validates data
-5. Final config gets initialized
-
-## Building the Plugin
-
-When you build a plugin, you are purely building a feature for your project and then abstracting it outside of the project.
-
-### Template Files
-
-In the [payload-plugin-template](https://github.com/payloadcms/payload-plugin-template), you will see a common file structure that is used across all plugins:
-
-1. root folder
-2. /src folder
-3. /dev folder
-
-#### Root
-
-In the root folder, you will see various files that relate to the configuration of the plugin. We set up our environment in a similar manner in Payload core and across other projects, so hopefully these will look familiar:
-
-* **README**.md* - This contains instructions on how to use the template. When you are ready, update this to contain instructions on how to use your Plugin.
-* **package**.json* - Contains necessary scripts and dependencies. Overwrite the metadata in this file to describe your Plugin.
-* .**editorconfig** - Defines settings to maintain consistent coding styles.
-* .**eslintrc**.js - Eslint configuration for reporting on problematic patterns.
-* .**gitignore** - List specific untracked files to omit from Git.
-* .**prettierrc**.js - Configuration for Prettier code formatting.
-* **LICENSE** - As part of the open-source community, we ship all plugins with an MIT license but it is not required.
-* **tsconfig**.json - Configures the compiler options for TypeScript
-
-**IMPORTANT***: You will need to modify these files.
-
-#### Dev
-
-In the dev folder, you’ll find a basic payload project, created with `npx create-payload-app` and the blank template.
-
-The `samplePlugin` has already been installed to the `payload.config()` file in this project.
-
-```ts
-plugins: [
-  samplePlugin({
-    enabled: false,
+const sessionMiddleware = session({
+  secret: process.env.PAYLOAD_SECRET, // Replace with 24 characters+ random string if .env not available
+  resave: false, // Not required, see for details: https://www.npmjs.com/package/express-session#resave
+  saveUninitialized: true, // Required, cause on initialisation it sets the socketID to the session
+  cookie: {
+    secure: false, // Required for localhost development, for production see: https://www.npmjs.com/package/express-session#cookiesecure
+    httpOnly: true, // Hides cookie from javascript, details : https://www.npmjs.com/package/express-session#cookiehttponly
+    sameSite: false, // Required setting for making this work cross-browser with client on different host, see: https://www.npmjs.com/package/express-session#cookiesamesite
+  },
+  store: MongoStore.create({ 
+    mongoUrl: process.env.DATABASE_URI
   })
-]
+});
+
+app.use(sessionMiddleware)
+payload.io.engine.use(sessionMiddleware)
+
+
+httpServer.listen(process.env.PORT || 3000)
 ```
 
-Later when you rename the plugin or add additional options, make sure to update them here.
 
-You may wish to add collections or expand the test project depending on the purpose of your plugin. Just make sure to keep this dev environment as simplified as possible - users should be able to install your plugin without additional configuration required.
-
-When you’re ready to start development, navigate into this folder with `cd dev`
-
-And then start the project with `yarn dev` and pull up [http://localhost:3000/](http://localhost:3000/) in your browser.
-
-#### Src
-
-Now that we have our environment setup and we have a dev project ready to - it’s time to build the plugin!
-
-**index.ts**
-
-First up, the `src/index.ts` file. It is best practice not to build the plugin directly in this file, instead we use this to export the plugin and types from separate files.
-
-**Plugin.ts**
-
-To reiterate, the essence of a payload plugin is simply to extend the payload config - and that is exactly what we are doing in this file.
-
-```ts
-export const samplePlugin =
-  (pluginOptions: PluginTypes) =>
-    (incomingConfig: Config): Config => {
-      let config = { ...incomingConfig }
-
-      // do something cool with the config here
-
-      return config
-    }
-
+and include it according [Payload’s specs](https://payloadcms.com/docs/configuration/overview) in your payload configuration.
+```
+import { buildConfig } from ‘payload/config'
+import { PluginSocketIO } from ‘./plugins/PluginSocketIO‘buildConfig({	…
+	plugins: [ PluginSocketIO ]})
 ```
 
-First, we receive the existing payload config along with any plugin options.
 
-Then we set the variable `config` to be equal to the existing config.
-
-From here, you can extend the config as you wish.
-
-Finally, you return the config and that is it!
-
-##### Spread Syntax
-
-Spread syntax (or the spread operator) is a feature in JavaScript that uses the dot notation **(...)** to spread elements from arrays, strings, or objects into various contexts.
-
-We are going to use spread syntax to allow us to add data to existing arrays without losing the existing data. It is crucial to spread the existing data correctly – else this can cause adverse behavior and conflicts with Payload config and other plugins.
-
-Let’s say you want to build a plugin that adds a new collection:
-
-```ts
-config.collections = [
-  ...(config.collections || []),
-  // Add additional collections here
-]
+### Step 3 Load plugin
+The third and final step, is to it according [Payload’s specs](https://payloadcms.com/docs/configuration/overview) in your payload configuration.
+```
+import { buildConfig } from ‘payload/config'
+import { PluginSocketIO } from ‘./plugins/PluginSocketIO‘buildConfig({	…
+	plugins: [ 
+		PluginSocketIO({
+			enabled: true		})
+	]})
 ```
 
-First we spread the `config.collections` to ensure that we don’t lose the existing collections, then you can add any additional collections just as you would in a regular payload config.
 
-This same logic is applied to other properties like admin, hooks, globals:
+## Use cases
 
-```ts
-config.globals = [
-  ...(config.globals || []),
-  // Add additional globals here
-]
+Before going through the use cases, I’d like to mention that you can pass a `dev` attribute into the plugin configuration object to provide console logs of emitted messages. This could help your configuration when the server-client connection has not yet been successfully established.
+### 1. Emit messages on CRUD operations
 
-config.hooks = {
-  ...(incomingConfig.hooks || {}),
-  // Add additional hooks here
+You can emit messages when certain operations are being executed on your collections. Any of these operations can be used to emit messages: ‘create', ‘find', ‘findByID’, ‘update', ‘updateByID’, ‘delete’, ‘deleteByID’, ‘login’, ‘refresh’, and or ‘forgotPassword’Simply extend your collection config via one of these two methods:
+
+
+
+```
+CollectionConfig = {
+	custom: {
+		socketAccess: {
+			create: (args, req, result) => {
+				// Return false to disallow emit
+				// Return {public: boolean | Object<result>}
+				// Return {self: boolean | Object<result>}
+				// Return {<room>: boolean | Object<result>}
+				const publicMessage = {…result}
+				publicMessage.hello = “world”
+				return {
+          public: result,
+          self: true,
+          lorem: ”ipsum”
+        }
+      }
+		}
+	}
+}
+
+```This configuration will emit the result with the extended property “hello” to everyone who is connected with the server. It wil simultaneously send a message to the user that created the new entry with the value equal to the body of its POST request. It will also emit the string “ipsum” to any user that is connected to the “lorem” room.
+
+```
+CollectionConfig = {
+	custom: {
+		socketAccess: {
+			updateByID: {
+        public: true,
+        self: true,
+        lorem: ”ipsum”
+      }
+		}
+	}
 }
 ```
+This configuration will do almost the same as the previous one, except it won’t extend the result object for the public message. 
 
-Some properties will be slightly different to extend, for instance the onInit property:
+### 2. Add custom server emitters
 
-```ts
-import { onInitExtension } from './onInitExtension' // example file
-
-config.onInit = async payload => {
-  if (incomingConfig.onInit) await incomingConfig.onInit(payload)
-  // Add additional onInit code by defining an onInitExtension function
-  onInitExtension(pluginOptions, payload)
+In order to allow your server to process client messages, you can create custom functions that will be executed on the initialisation of the connection. Below you’ll find a simple example that would allow a client to emit a string to “mario-luigi”, to join either the Mario or Luigi room.
+```
+const customRoutes = (socket: Socket) => {
+    socket.on(“mario-luigi", data => {
+       if (data.toLowerCase() === “mario”) {
+            socket.join(“mario”)
+        }
+       if (data.toLowerCase() === “luigi”) {
+            socket.join(“luigi”)
+        }
+    })
 }
+
+
+```After creating this function, you’ll need to pass it to the PluginSocketIO configuration like so:buildConfig({	…
+	plugins: [ 
+		PluginSocketIO({
+			onConnect: [customRoutes]
+    })
+	]})
 ```
+This method could be used for any other use case as well, that requires to process a socket right after initialisation. This use case is just an example.
 
-If you wish to add to the onInit, you must include the async/await. We don’t use spread syntax in this case, instead you must await the existing onInit before running additional functionality.
 
-In the template, we have stubbed out a basic `onInitExtension` file that you can use, if not needed feel free to delete it.
+## Client configuration
 
-##### File Aliasing
-
-If your plugin uses packages or dependencies that are not browser compatible (fs, stripe, nodemailer, etc), you will need to alias them using your bundler to prevent getting errors in build.
-
-You can read more about aliasing files with Webpack or Vite in the [excluding server modules](https://payloadcms.com/docs/admin/excluding-server-code#aliasing-server-only-modules) docs.
-
-##### Types.ts
-
-If your plugin has options, you should define and provide types for these options in a separate file which gets exported from the main index.ts.
-
-```ts
-export interface PluginTypes {
-  /**
-   * Enable or disable plugin
-   * @default false
-   */
-  enabled?: boolean
-}
-```
-
-If possible, include JSDoc comments to describe the options and their types. This allows a developer to see details about the options in their editor.
-
-##### Testing
-
-Having a test suite for your plugin is essential to ensure quality and stability. Jest is a popular testing framework, widely used for testing JavaScript and particularly for applications built with React.
-
-Jest organizes tests into test suites and cases. We recommend creating individual tests based on the expected behavior of your plugin from start to finish.
-
-Writing tests with Jest is very straightforward and you can learn more about how it works in the [Jest documentation.](https://jestjs.io/)
-
-For this template, we stubbed out `plugin.spec.ts` in the `dev` folder where you can write your tests.
-
-```ts
-describe('Plugin tests', () => {
-  // Create tests to ensure expected behavior from the plugin
-  it('some condition that must be met', () => {
-   // Write your test logic here
-   expect(...)
-  })
-})
-```
-
-## Best practices
-
-With this tutorial and the `payload-plugin-template`, you should have everything you need to start building your own plugin.
-In addition to the setup, here are other best practices aim we follow:
-
-* **Providing an enable / disable option:** For a better user experience, provide a way to disable the plugin without uninstalling it. This is especially important if your plugin adds additional webpack aliases, this will allow you to still let the webpack run to prevent errors.
-* **Include tests in your GitHub CI workflow**: If you’ve configured tests for your package, integrate them into your workflow to run the tests each time you commit to the plugin repository. Learn more about [how to configure tests into your GitHub CI workflow.](https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs)
-* **Publish your finished plugin to NPM**: The best way to share and allow others to use your plugin once it is complete is to publish an NPM package. This process is straightforward and well documented, find out more [creating and publishing a NPM package here.](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/).
-* **Add payload-plugin topic tag**: Apply the tag **payload-plugin **to your GitHub repository. This will boost the visibility of your plugin and ensure it gets listed with [existing payload plugins](https://github.com/topics/payload-plugin).
-* **Use [Semantic Versioning](https://semver.org/) (SemVar)** - With the SemVar system you release version numbers that reflect the nature of changes (major, minor, patch). Ensure all major versions reference their Payload compatibility.
-
-# Questions
-Please contact [Payload](mailto:dev@payloadcms.com) with any questions about using this plugin template.
+The client configuration is pretty straight forward, and well documenten on the [socket.io website](https://socket.io/docs/v4/client-api/). There are however two configuration properties that you might want to take a closer look on, `secure` & `withCredentials`, especially when you are running your client from a different host as your server.
