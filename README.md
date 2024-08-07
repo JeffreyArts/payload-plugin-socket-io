@@ -1,4 +1,4 @@
-#Payload plugin - Socket IO
+# Payload plugin - Socket IO
 #### Plugin for integrating Socket IO with payload
 
 This plugin will allow you to emit messages via SocketIO on Payload’s crud operations over the root/default namespace. It works by adding a custom.socketAccess object to your collection with one of the following properties: ‘create', ‘find', ‘findByID’, ‘update', ‘updateByID’, ‘delete’, ‘deleteByID’, ‘login’, ‘refresh’, and or ‘forgotPassword’.It will utilise express-session to extend sockets with a session object, that can be used via back-end processes. The socketIO server and express session need to be set-up by the developer. This document guides you through this process, and highlights common pitfalls.
