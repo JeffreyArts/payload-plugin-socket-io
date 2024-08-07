@@ -24,7 +24,6 @@ const Messages: CollectionConfig = {
                 // Return {public: boolean | Object<result>}
                 // Return {self: boolean | Object<result>}
                 // Return {<room>: boolean | Object<result>}
-                // Return undefined will emit to public by default
                 
                 const data = {
                     id: result.id,
