@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { socket } from './../socket';
 import { ConnectionState } from './ConnectionState';
-import { Events } from "./socketEvents";
+import { EventState } from "./socketEvents";
 import { useLocation } from "react-router-dom";
 
 import "./index.scss"
@@ -64,7 +64,7 @@ const SocketIOHandler: React.FC = () => {
   return (
     <div className="App">
       <ConnectionState id={ socketId } />
-      <Events events={ fooEvents } />
+      <EventState events={ fooEvents } />
     </div>
   );
 }
