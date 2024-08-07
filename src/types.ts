@@ -1,7 +1,7 @@
+import Payload from "payload"
 import { IncomingMessage } from 'http';
 import session from 'express-session';
 import { Socket } from 'socket.io';
-
 
 export interface CustomSocketRequest extends IncomingMessage {
   session: CustomSession;
@@ -26,4 +26,5 @@ export interface OptionsPluginSocketIO {
   dev?: boolean,
   onConnect?: Array<(socket: Socket) => void>,
 }
+
 

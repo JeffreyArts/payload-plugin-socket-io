@@ -8,9 +8,14 @@ import session, { SessionOptions } from "express-session";
 import MongoStore from "connect-mongo"
 import cors from "./utils/loadCorsFromENV"
 
-console.log(cors)
 const app = express();
 app.set('trust proxy', 1)
+
+declare module "payload" {
+  interface Payload {
+    io?: any; // or use the appropriate type for io
+  }
+}
 
 const httpServer = createServer(app);
 // Adding socketIO server to payload object, so it is accessible from any point in the application

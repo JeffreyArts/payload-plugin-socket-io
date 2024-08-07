@@ -10,7 +10,7 @@ import "./index.scss"
 // In your projects, you can import as follows:
 // import { useConfig } from 'payload/components/utilities';
 
-const formatDateTime = (date) => {
+const formatDateTime = (date: Date) => {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
   const seconds = String(date.getSeconds()).padStart(2, '0');
@@ -22,7 +22,7 @@ const formatDateTime = (date) => {
 const SocketIOHandler: React.FC = () => {
   
   const [socketId] = useState(socket.id);
-  const [fooEvents, setFooEvents] = useState([]);
+  const [fooEvents, setFooEvents] = useState([] as any[]);
   const location = useLocation();
   const [currentLocation, setCurrentLocation] = useState( location.pathname.split("/")[3] || location.pathname.split("/")[1]);
 
@@ -43,10 +43,10 @@ const SocketIOHandler: React.FC = () => {
 
   useEffect(() => {
 
-    function onFooEvent(param, data) {
-      setFooEvents(previous => {
-        const updatedEvents = [{type: param, data: data, time: formatDateTime(new Date()) },...previous];
-        while (updatedEvents.length > 10) {
+    function onFooEvent(param:string, data:any) {
+      setFooEvents((previous:any[]) => {
+        const updatedEvents = [{type: param, data: data, time: formatDateTime(new Date()) }, ...previous];
+        while (updatedEvents.length > 10) { 
           updatedEvents.pop()
         }
         return updatedEvents;

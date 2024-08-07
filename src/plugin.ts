@@ -1,10 +1,13 @@
+import payload, { Payload } from 'payload'
 import { CollectionAfterOperationHook } from 'payload/types'
 import type { Plugin } from 'payload/config'
 import type { Server, Socket } from "socket.io"
   
 import type { OptionsPluginSocketIO, CustomSession, CustomSocket, CustomSocketRequest } from './types'
 
-// type PluginType = (pluginOptions: PluginType) => Plugin
+interface extendedPayload extends Payload {
+  io: Server
+}
 
 export const PluginSocketIO =
 (pluginOptions: OptionsPluginSocketIO): Plugin =>
@@ -161,7 +164,8 @@ export const PluginSocketIO =
     })
   }
   
-  config.onInit = async payload => {
+  config.onInit = async (p) => {
+    const payload = p as extendedPayload
     io = payload.io
 
     if (!io) {
