@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { socket } from './../socket';
 import { ConnectionState } from './ConnectionState';
-import { Events } from "./Events";
+import { Events } from "./socketEvents";
 import { useLocation } from "react-router-dom";
 
 import "./index.scss"
