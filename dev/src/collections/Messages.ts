@@ -1,5 +1,4 @@
 import { CollectionConfig } from "payload/types"
-// import { SocketAccess } from "@/plugins/my-first-plugin/src/plugin"
 import _ from "lodash"  
 
 const Messages: CollectionConfig = {
@@ -26,6 +25,7 @@ const Messages: CollectionConfig = {
                 // Return {self: boolean | Object<result>}
                 // Return {<room>: boolean | Object<result>}
                 // Return undefined will emit to public by default
+                
                 const data = {
                     id: result.id,
                     createdAt: result.createdAt,
@@ -38,14 +38,16 @@ const Messages: CollectionConfig = {
                 }
                 return {
                     public: data,
-                    self: result
+                    self: result,
+                    admin: {
+                        newMessage: true
+                    }
                 }
             },
-            updateByID: (args, req, result) => {
-                console.log("user",result)
-                return {
-                    public: result
-                }
+            updateByID: {
+                self: true,
+                public: true,
+                messages: true
             }
         } 
     },

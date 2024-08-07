@@ -18,24 +18,19 @@ export const PluginSocketIO =
         return config
       }
 
-      config.globals = [
-        ...(config.globals || []),
-        // Add additional globals here
-      ]
-
       if (config.collections && config.collections.length > 1) {
         config.collections.map(collection => {
           if (collection?.custom?.socketAccess) {
             const socketAccess = collection.custom.socketAccess
             
-            for (const type in socketAccess) {
+            for (const socketAccessType in socketAccess) {
               
-              console.log("Create new socket hook for:", `${collection.slug}.${type}`);
-              if (socketAccess[type] === false) {
+              console.info("Create new socket hook for:", `${collection.slug}.${socketAccessType}`);
+              if (socketAccess[socketAccessType] === false) {
                 break;
               }
               
-              if (typeof socketAccess[type] !== "function") {
+              if (typeof socketAccess[socketAccessType] !== "function") {
                 break;
               }
               
@@ -44,108 +39,91 @@ export const PluginSocketIO =
                 operation, // name of the operation
                 req, // full express request
                 result, // the result of the operation, before modifications
-              }) => {
-                let data = undefined
-                // console.log("Req.payload", req.payload)
-                if (operation !== type) {
-                  return
+              }) => new Promise((resolve,reject) => {
+                /**
+                 * data = {
+                 *  public?: {}
+                 *  self?: {}
+                 *  <room>: {}
+                 * }
+                 */
+                let data = {} as {
+                  public?: any
+                  self?: any
+                  [key: string]: any
                 }
                 
+                // Process socketaccess method
+                if (typeof socketAccess[operation] === "function") { 
+                  data = socketAccess[operation](args, req, result)
+                }
+
+                if (typeof socketAccess[operation] === "object") { 
+                  for (const accessType in socketAccess[operation]) {
+                    if (socketAccess[operation][accessType]) {
+                      data[accessType] = result
+                    }
+                  }
+                }
+
+                // Escape hook, since the data property indicates that it is not allowed to emit messages
+                if (!data) {
+                  return resolve(result)
+                }
+
+                // Escape hook, since it can't emit any messages
                 if (!io) {
+                  resolve(result)
                   throw new Error("Internal error: Missing io object")
                 }
 
-                
-                // if (!req.res?.socket) {
-                //   throw new Error("Internal error: Missing socket")
-                // }
-                
+                 // Escape hook, since the session object is mandatory
+                if (!req.session) {
+                  resolve(result)
+                  throw new Error("Internal error: Missing session object")
+                }
+
                 const socketID = req.session.socketID
                 const socket = io.sockets.sockets.get(socketID)
-                const authenticated = !!req.user
                 
-                console.log("req.session", req.session)
-                console.log("io.sockets", )
-                
-                // Process socketaccess method
-                if (typeof socketAccess[type] === "function") { 
-                  data = socketAccess[type](args, req, result)
-                }
-                
-                if (data === false) {
-                  return data
-                }
-                
-                if (data !== undefined) {
-                  result = data
-                }
-                
-                // Method processed, now emit socket(s)
-                
-                // Process public emit
-                if (io) {
-                  let publicData = data
-                  if (data["public"]) {
-                    publicData = data["public"]
-                  }
-                  io.emit(`public.${collection.slug}.${type}`, publicData)
-                }
-                  
-                
-                // Process self emit
-                if (io) {
-                  if (!socket) {
-                    throw new Error(`Can't emit to self; missing socket for id ${socketID}`)
-                  }
-                  
-                  let tmpResult = result
-                  if (result["self"]) {
-                    tmpResult = result["self"]
-                  }
-                  socket.emit(`self.${collection.slug}.${type}`, tmpResult)
-                }
-                
-                
-                // Process room emit
-                if (io && (!result.id)) {
-                  
-                  for (const room in result) {
-                    if (room == "public" || room == "self") {
-                      break;
-                    }
-                    let tmpResult = result
-                    if (result[room]) {
-                      tmpResult = result[room]
-                    }
 
-                  // console.log("⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴");
-                  // console.log(`io.to(${room}).emit(${room}.${collection.slug}.${type}, ${JSON.stringify(tmpResult, null, 2)}`)
-                  // console.log("⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵");
-              
-                    io.to(room).emit(`${room}.${collection.slug}.${type}`,tmpResult)
+                // Method processed, now emit socket(s)
+                // `Public` emit
+                if (io && data["public"]) {
+                  io.emit(`public.${collection.slug}.${operation}`, data["public"])
+                }
+                
+                // `Self` emit
+                if (io && data["self"]) {
+                  if (!socket) {
+                    return reject(new Error(`Can't emit to self; missing socket for id ${socketID}`))
+                  }
+                  socket.emit(`self.${collection.slug}.${operation}`, data["self"])
+                }
+                
+                // `<room>` emit
+                if (io && (!data.id)) {
+                  for (const room in data) {
+                    if (room == "public" || room == "self") {
+                      continue;
+                    }
+                    // console.log("⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴⎴");
+                    // console.log(`io.to(${room}).emit(${room}.${collection.slug}.${operation}, ${JSON.stringify(roomData, null, 2)}`)
+                    // console.log("⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵⎵");
+                    const roomData = data[room]
+                    io.to(room).emit(`${room}.${collection.slug}.${operation}`,roomData)
                   }
                 }
-    
-                // console.log("req.payload.io", typeof req.payload.io)
-                
-                // return undefined to respect the original request result over the modified socket one
-    
-                if (result["self"]) {
-                  return result["self"]
-                }
-    
-                if (result["public"]) {
-                  return result["public"]
-                }
-    
-                return result
-              }
+
+                // Disallow socketAccess to intervine with data flow
+                return resolve(result)
+              })
               
               // Add hook to collection hook
               if (!collection.hooks){
                 collection.hooks = {}
               }
-              
+
               if (!collection.hooks.afterOperation){
                 collection.hooks.afterOperation = []
               }

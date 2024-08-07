@@ -3,3 +3,30 @@
   width: 100%;
   border-bottom: 1px solid currentColor;
 }
+
+.socket-list {
+  margin: 0;
+  padding: 16px 0 0;
+}
+
+.socket-list-item {
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  width: 100%;
+  flex-flow: column;
+  line-height: 1;
+  transition: 2s all ease;
+
+  &:hover {
+    color: #f09;
+  }
+
+
+  em {
+    display: inline-block;
+    margin-top: 4px;
+    align-self: end;
+    font-size: .8em;
+  }
+}

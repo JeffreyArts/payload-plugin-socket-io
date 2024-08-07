@@ -1,8 +1,6 @@
 import { IncomingMessage } from 'http';
 import session from 'express-session';
 import 'socket.io';
-import type { InitOptions } from "payload/config"
-import { Server } from 'socket.io';
 
 
 interface CustomIncomingMessageSession extends session.Session {

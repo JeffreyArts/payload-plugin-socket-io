@@ -2,27 +2,30 @@ import { InitOptions } from 'payload/config'
 import payload from "payload";
 import MongoStore from "connect-mongo"
 import "dotenv/config"
-import cors from "./utils/loadCorsFromENV"
 import Server from "./../../src/server/initiateExpressSocketIO"
+import cors from "./utils/loadCorsFromENV"
+import customIOroutes from "./socket/custom-routes"
 
 const server = Server(Number(process.env.PORT) || 3000, {
-  socketIO: {
+  onConnect: [customIOroutes],
+  socketIO: { // Extension of default socketIO options :::: https://socket.io/docs/v4/server-api/
     cors: {
-      origin: cors
+      origin: cors // Array of authorized hosts
     }
   },
-  expressSession: {
+  expressSession: { // Extension of default express-session options :::: https://www.npmjs.com/package/express-session
     secret: process.env.PAYLOAD_SECRET,
-    store: MongoStore.create({ // A store is required to use to prevent memory leaks, Mongostore is just used because mongoDB was already included 
+    // A store is required to use in order prevent memory leaks from the default one
+    // Which is not an issue for development purposes, but we have a Mongo instance anyway, so lets just use it :)
+    store: MongoStore.create({ 
       mongoUrl: process.env.DATABASE_URI
     })
   }
 })
 
 export const start = async (args?: Partial<InitOptions>) => {
-  payload.io = server.io, // Adding socketIO server
+  payload.io = server.io, // Adding socketIO server to payload object, so it is accessible from any point in the application
   
-  // Initialize Payload
   await payload.init({
     secret: process.env.PAYLOAD_SECRET,
     express: server.express, // Adding Express server
@@ -34,11 +37,6 @@ export const start = async (args?: Partial<InitOptions>) => {
   
   server.express.get('/', (_, res) => {
     res.redirect('/admin')
-  })
-
-  server.express.get('/api/test', (req, res) => {
-    console.log("Test sessionId:", req.sessionID, req.session)
-    res.send('hello world')
   })
 }
 

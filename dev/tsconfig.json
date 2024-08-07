@@ -21,7 +21,7 @@
   },
   "include": [
     "src"
-  ],
+, "src/socket"  ],
   "exclude": [
     "node_modules",
     "dist",
