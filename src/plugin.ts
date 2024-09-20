@@ -190,7 +190,7 @@ export const PluginSocketIO =
       }
     }
     
-    const onConnectMethods = [defaultOnConnectMethod] as Array<(socket: Socket | CustomSocket ) => void>
+    const onConnectMethods = [defaultOnConnectMethod] as Array<(socket: Socket | CustomSocket, io?: Server ) => void>
     if (pluginOptions.onConnect && typeof pluginOptions.onConnect != "undefined" && typeof pluginOptions.onConnect != "function") {
       if (typeof pluginOptions.onConnect === "function") {
         onConnectMethods.push(pluginOptions.onConnect)
@@ -204,7 +204,7 @@ export const PluginSocketIO =
       
       io.on("connect", (socket) => {
         if (onConnectMethods) {
-          onConnectMethods.forEach(onConnect => onConnect(socket))
+          onConnectMethods.forEach(onConnect => onConnect(socket, io))
         }
       })
     }
