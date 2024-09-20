@@ -141,7 +141,7 @@ This configuration will do almost the same as the previous one, except it won’
 
 In order to allow your server to process client messages, you can create custom functions that will be executed on the initialisation of the connection. Below you’ll find a simple example that would allow a client to emit a string to “mario-luigi”, to join either the Mario or Luigi room.
 ``` ts
-const customRoutes = (socket: Socket) => {
+const customRoutes = (socket: Socket, io: Server) => {
     socket.on("mario-luigi", data => {
         if (data.toLowerCase() === "mario") {
             socket.join("mario")
